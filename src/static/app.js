@@ -41,6 +41,15 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentDay = "";
   let currentTimeRange = "";
 
+  // Helper to escape HTML special characters for safe attribute/content insertion
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
   // Authentication state
   let currentUser = null;
 
@@ -568,6 +577,25 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         `
         }
+        <div class="share-container">
+          <button class="share-button" data-activity="${escapeHtml(name)}" aria-label="Share this activity">
+            <span>🔗</span> Share
+          </button>
+          <div class="share-dropdown hidden">
+            <a class="share-option share-twitter" href="#" target="_blank" rel="noopener noreferrer">
+              <span>𝕏</span> Twitter/X
+            </a>
+            <a class="share-option share-whatsapp" href="#" target="_blank" rel="noopener noreferrer">
+              <span>💬</span> WhatsApp
+            </a>
+            <a class="share-option share-facebook" href="#" target="_blank" rel="noopener noreferrer">
+              <span>📘</span> Facebook
+            </a>
+            <button class="share-option share-copy">
+              <span>📋</span> Copy Link
+            </button>
+          </div>
+        </div>
       </div>
     `;
 
@@ -586,6 +614,42 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Add click handler for share button
+    const shareButton = activityCard.querySelector(".share-button");
+    const shareDropdown = activityCard.querySelector(".share-dropdown");
+    shareButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      // Close all other open dropdowns
+      document.querySelectorAll(".share-dropdown").forEach((dropdown) => {
+        if (dropdown !== shareDropdown) {
+          dropdown.classList.add("hidden");
+        }
+      });
+      shareDropdown.classList.toggle("hidden");
+    });
+
+    // Set up share links for this activity
+    const activityUrl = `${window.location.origin}${window.location.pathname}?activity=${encodeURIComponent(name)}`;
+    const shareText = `Check out this activity at Mergington High School: ${name}`;
+
+    activityCard.querySelector(".share-twitter").href =
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(activityUrl)}`;
+    activityCard.querySelector(".share-whatsapp").href =
+      `https://wa.me/?text=${encodeURIComponent(shareText + " " + activityUrl)}`;
+    activityCard.querySelector(".share-facebook").href =
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(activityUrl)}`;
+
+    activityCard.querySelector(".share-copy").addEventListener("click", () => {
+      navigator.clipboard.writeText(activityUrl).then(() => {
+        const copyBtn = activityCard.querySelector(".share-copy");
+        copyBtn.textContent = "✅ Copied!";
+        setTimeout(() => {
+          copyBtn.innerHTML = "<span>📋</span> Copy Link";
+        }, 2000);
+      });
+      shareDropdown.classList.add("hidden");
+    });
 
     activitiesList.appendChild(activityCard);
   }
@@ -853,6 +917,13 @@ document.addEventListener("DOMContentLoaded", () => {
       showMessage("Failed to sign up. Please try again.", "error");
       console.error("Error signing up:", error);
     }
+  });
+
+  // Close share dropdowns when clicking outside
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".share-dropdown").forEach((dropdown) => {
+      dropdown.classList.add("hidden");
+    });
   });
 
   // Expose filter functions to window for future UI control
